@@ -24,6 +24,9 @@ classifiers = [
     "Topic :: Software Development :: Tools",
 ]
 keywords = ["mcp", "cli", "cursor", "claude", "gemini", "opencode", "ai", "coding"]
+dependencies = [
+    "rich>=13.0.0",
+]
 
 [project.scripts]
 damngood = "damngood.mcp_manager:main"
