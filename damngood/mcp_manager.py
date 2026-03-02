@@ -1,6 +1,7 @@
 """
 A tool to manage MCP (Model Context Protocol) servers across multiple AI assistants
 """
+
 import json
 import os
 import platform as _platform
@@ -33,9 +34,11 @@ try:
         print_import_result,
         create_sync_progress,
     )
+
     HAS_TUI = True
 except ImportError:
     HAS_TUI = False
+
 
 # Platform Detection
 def _detect_os() -> str:
@@ -47,6 +50,7 @@ def _detect_os() -> str:
         return "windows"
     return "linux"
 
+
 CURRENT_OS = _detect_os()
 
 
@@ -57,12 +61,11 @@ def _get_appdata() -> Path:
 
 def _get_localappdata() -> Path:
     """Get the Windows %LOCALAPPDATA% directory (or equivalent fallback)."""
-    return Path(
-        os.environ.get("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))
-    )
+    return Path(os.environ.get("LOCALAPPDATA", str(Path.home() / "AppData" / "Local")))
 
 
 # Default Client Paths (platform-aware)
+
 
 def _build_client_paths() -> Dict[str, Path]:
     """Build platform-specific default paths for MCP client configs."""
@@ -81,7 +84,10 @@ def _build_client_paths() -> Dict[str, Path]:
     # Claude Desktop — platform-specific application data
     if CURRENT_OS == "macos":
         paths["claude_desktop"] = (
-            home / "Library" / "Application Support" / "Claude"
+            home
+            / "Library"
+            / "Application Support"
+            / "Claude"
             / "claude_desktop_config.json"
         )
     elif CURRENT_OS == "windows":
@@ -93,13 +99,23 @@ def _build_client_paths() -> Dict[str, Path]:
             home / ".config" / "Claude" / "claude_desktop_config.json"
         )
 
-    # OpenCode — primary path is $HOME/.opencode.json everywhere
-    paths["opencode"] = home / ".opencode.json"
+    # OpenCode — uses ~/.config/opencode/opencode.json (XDG) on Linux/macOS
+    if CURRENT_OS == "windows":
+        paths["opencode"] = _get_appdata() / "opencode" / "opencode.json"
+    else:
+        paths["opencode"] = home / ".config" / "opencode" / "opencode.json"
 
     return paths
 
 
 DEFAULT_CLIENT_PATHS = _build_client_paths()
+
+# Directory to check for client installation when the config file
+# itself may not exist yet.  Falls back to config_path.parent for
+# clients not listed here.
+CLIENT_DETECT_DIRS: Dict[str, Path] = {
+    "claude": Path.home() / ".claude",
+}
 
 
 # Config keys for different clients
@@ -162,10 +178,11 @@ class ClientManager:
 
     @classmethod
     def discover_clients(cls) -> Dict[str, Dict[str, Any]]:
-        """Auto-discover clients by checking if their config files exist"""
+        """Auto-discover clients by checking if their install directory exists"""
         discovered = {}
         for client_name, config_path in DEFAULT_CLIENT_PATHS.items():
-            if config_path.exists():
+            detect_dir = CLIENT_DETECT_DIRS.get(client_name, config_path.parent)
+            if detect_dir.is_dir():
                 discovered[client_name] = {
                     "name": client_name,
                     "path": str(config_path),
@@ -231,7 +248,9 @@ class ClientManager:
 
         cls.save_clients(clients)
         if HAS_TUI:
-            print_success(f"Registered client [client.name]{name}[/client.name] → {path} (key: {key})")
+            print_success(
+                f"Registered client [client.name]{name}[/client.name] → {path} (key: {key})"
+            )
         else:
             print(f"Registered client '{name}' -> {path} (key: {key})")
 
@@ -250,7 +269,9 @@ class ClientManager:
 
         if clients[name].get("auto_discovered", False):
             if HAS_TUI:
-                print_warning(f"Cannot remove auto-discovered client '{name}'. Use 'disable' instead.")
+                print_warning(
+                    f"Cannot remove auto-discovered client '{name}'. Use 'disable' instead."
+                )
             else:
                 print(
                     f"Cannot remove auto-discovered client '{name}'. Use 'disable' instead."
@@ -420,7 +441,9 @@ class CentralRegistry:
             cls.save_registry(registry)
 
             if HAS_TUI:
-                print_success(f"Added server [server.name]{name}[/server.name] to central registry")
+                print_success(
+                    f"Added server [server.name]{name}[/server.name] to central registry"
+                )
             else:
                 print(f"Added server '{name}' to central registry")
 
@@ -478,7 +501,9 @@ class CentralRegistry:
             cls.save_registry(registry)
 
             if HAS_TUI:
-                print_success(f"Updated server [server.name]{name}[/server.name] in central registry")
+                print_success(
+                    f"Updated server [server.name]{name}[/server.name] in central registry"
+                )
             else:
                 print(f"Updated server '{name}' in central registry")
 
@@ -513,7 +538,9 @@ class CentralRegistry:
         del registry["servers"][name]
         cls.save_registry(registry)
         if HAS_TUI:
-            print_success(f"Removed server [server.name]{name}[/server.name] from central registry")
+            print_success(
+                f"Removed server [server.name]{name}[/server.name] from central registry"
+            )
         else:
             print(f"Removed server '{name}' from central registry")
 
@@ -541,7 +568,9 @@ class CentralRegistry:
         if HAS_TUI:
             print_sync_header(len(servers), len(clients))
         else:
-            print(f"\nSyncing {len(servers)} server(s) to {len(clients)} client(s)...\n")
+            print(
+                f"\nSyncing {len(servers)} server(s) to {len(clients)} client(s)...\n"
+            )
 
         for client_name, client_config in clients.items():
             if not HAS_TUI:
@@ -640,7 +669,9 @@ class CentralRegistry:
                     registry["servers"][server_name] = server_config
                     imported.append(server_name)
                     if HAS_TUI:
-                        print_success(f"Imported [server.name]{server_name}[/server.name]")
+                        print_success(
+                            f"Imported [server.name]{server_name}[/server.name]"
+                        )
                     else:
                         print(f"  Imported '{server_name}'")
 
@@ -677,13 +708,20 @@ class MCPServerManager:
             "cursor": home / ".cursor" / "mcp.json",
             "gemini": home / ".gemini" / "settings.json",
             "claude": home / ".claude.json",
-            "opencode": home / ".opencode.json",
             "generic": home / ".mcp" / "config.json",
         }
+        # OpenCode — platform-specific (XDG on Linux/macOS)
+        if CURRENT_OS == "windows":
+            paths["opencode"] = _get_appdata() / "opencode" / "opencode.json"
+        else:
+            paths["opencode"] = home / ".config" / "opencode" / "opencode.json"
         # Claude Desktop — platform-specific
         if CURRENT_OS == "macos":
             paths["claude_desktop"] = (
-                home / "Library" / "Application Support" / "Claude"
+                home
+                / "Library"
+                / "Application Support"
+                / "Claude"
                 / "claude_desktop_config.json"
             )
         elif CURRENT_OS == "windows":
@@ -881,7 +919,9 @@ class MCPServerManager:
             json.dump(self.config, f, indent=2)
         print(f"Config exported to {output}")
 
+
 # Default Config Paths (legacy auto-detect, platform-aware)
+
 
 def _build_config_paths() -> List[Path]:
     """Build platform-aware list of config paths for legacy auto-detection."""
@@ -890,39 +930,43 @@ def _build_config_paths() -> List[Path]:
     paths: List[Path] = []
 
     # Cursor
-    paths.append(home / ".cursor" / "mcp.json")           # global
-    paths.append(cwd / ".cursor" / "mcp.json")            # project-level
+    paths.append(home / ".cursor" / "mcp.json")  # global
+    paths.append(cwd / ".cursor" / "mcp.json")  # project-level
     if CURRENT_OS == "macos":
         paths.append(
-            home / "Library" / "Application Support" / "Cursor"
+            home
+            / "Library"
+            / "Application Support"
+            / "Cursor"
             / "cursor_desktop_config.json"
         )
     elif CURRENT_OS == "windows":
         paths.append(_get_appdata() / "Cursor" / "cursor_desktop_config.json")
 
-    # Gemini CLI 
-    paths.append(home / ".gemini" / "settings.json")       # global
-    paths.append(cwd / ".gemini" / "settings.json")        # project-level
+    # Gemini CLI
+    paths.append(home / ".gemini" / "settings.json")  # global
+    paths.append(cwd / ".gemini" / "settings.json")  # project-level
 
-    # OpenCode 
-    paths.append(home / ".opencode.json")                  # primary global
+    # OpenCode
     if CURRENT_OS != "windows":
         xdg = Path(os.environ.get("XDG_CONFIG_HOME", str(home / ".config")))
-        paths.append(xdg / "opencode" / ".opencode.json") # XDG global
-        paths.append(xdg / "opencode" / "opencode.json")  # XDG alt
+        paths.append(xdg / "opencode" / "opencode.json")  # XDG global (primary)
     else:
         paths.append(_get_appdata() / "opencode" / "opencode.json")
-    paths.append(cwd / "opencode.json")                    # project-level
-    paths.append(cwd / ".opencode" / "opencode.json")      # project alt
+    paths.append(cwd / "opencode.json")  # project-level
+    paths.append(cwd / ".opencode" / "opencode.json")  # project alt
 
-    # Claude Code (CLI) 
-    paths.append(home / ".claude.json")                    # MCP config (user scope)
-    paths.append(cwd / ".mcp.json")                        # MCP config (project scope)
+    # Claude Code (CLI)
+    paths.append(home / ".claude.json")  # MCP config (user scope)
+    paths.append(cwd / ".mcp.json")  # MCP config (project scope)
 
-    # Claude Desktop 
+    # Claude Desktop
     if CURRENT_OS == "macos":
         paths.append(
-            home / "Library" / "Application Support" / "Claude"
+            home
+            / "Library"
+            / "Application Support"
+            / "Claude"
             / "claude_desktop_config.json"
         )
     elif CURRENT_OS == "windows":
@@ -930,7 +974,7 @@ def _build_config_paths() -> List[Path]:
     else:
         paths.append(home / ".config" / "Claude" / "claude_desktop_config.json")
 
-    # Generic / XDG MCP 
+    # Generic / XDG MCP
     paths.append(home / ".mcp" / "config.json")
     if CURRENT_OS != "windows":
         paths.append(home / ".config" / "mcp" / "config.json")
@@ -991,7 +1035,12 @@ Examples:
     # Load custom tools for choices
     custom_tools = MCPServerManager.load_custom_tools()
     client_choices = [
-        "cursor", "gemini", "opencode", "claude", "claude_desktop", "generic",
+        "cursor",
+        "gemini",
+        "opencode",
+        "claude",
+        "claude_desktop",
+        "generic",
     ] + list(custom_tools.keys())
 
     parser.add_argument(
@@ -1226,6 +1275,7 @@ Examples:
                 f"Command '{args.command}' requires --client flag for single-client mode"
             )
             sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

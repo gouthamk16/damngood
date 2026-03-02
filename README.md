@@ -20,7 +20,7 @@ DamnGood MCP Manager provides **centralized management**:
 
 Auto-discovered clients:
 - **Cursor** - `~/.cursor/mcp.json`
-- **Claude** (Code & Desktop) - `~/.claude/config.json`
+- **Claude** (Code & Desktop) - `~/.claude.json`
 - **Gemini CLI** - `~/.gemini/settings.json`
 - **OpenCode** - `~/.config/opencode/opencode.json`
 

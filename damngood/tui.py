@@ -1,6 +1,7 @@
 """
 DamnGood TUI - Beautiful terminal interface with colors, ASCII art, and style.
 """
+
 import random
 import sys
 import time
@@ -44,7 +45,7 @@ DAMNGOOD_THEME = Theme(
 
 console = Console(theme=DAMNGOOD_THEME)
 
-# ASCII Art 
+# ASCII Art
 LOGO_LINES = [
     r"    ██████╗  █████╗ ███╗   ███╗███╗   ██╗ ██████╗  ██████╗  ██████╗ ██████╗ ",
     r"    ██╔══██╗██╔══██╗████╗ ████║████╗  ██║██╔════╝ ██╔═══██╗██╔═══██╗██╔══██╗",
@@ -61,7 +62,7 @@ TAGLINES = [
     "Because config files shouldn't be a damn mess.",
     "Sync once. Work everywhere.",
     "The MCP wrangler you didn't know you needed.",
-    "Stop copy-pasting configs. Start living.",
+    "Manage MCPs more efficiently, starting today.",
     "Centralized. Synchronized. Damn good.",
 ]
 
@@ -170,14 +171,17 @@ def print_info(message: str):
     console.print(f"  [info]ℹ[/info] {message}")
 
 
-# Server Display 
+# Server Display
 def print_server_list(servers: Dict[str, Any], title: str = "MCP Servers"):
     """Print a beautifully formatted server list."""
     if not servers:
         print_header(title)
         console.print(
             Align.center(
-                Text("No servers found. Use 'damngood add <name>' to add one.", style="muted")
+                Text(
+                    "No servers found. Use 'damngood add <name>' to add one.",
+                    style="muted",
+                )
             )
         )
         console.print()
@@ -207,7 +211,11 @@ def print_server_list(servers: Dict[str, Any], title: str = "MCP Servers"):
 
         clients = ", ".join(config.get("clients", []))
         enabled = config.get("enabled", True)
-        status = Text("● ACTIVE", style="server.enabled") if enabled else Text("○ OFF", style="server.disabled")
+        status = (
+            Text("● ACTIVE", style="server.enabled")
+            if enabled
+            else Text("○ OFF", style="server.disabled")
+        )
 
         table.add_row(f"  {name}", full_cmd, clients, status)
 
@@ -238,7 +246,11 @@ def print_server_detail(name: str, config: Dict[str, Any]):
     detail.add_row("Clients", ", ".join(clients) if clients else "(none)")
 
     enabled = config.get("enabled", True)
-    status_text = Text("● Active", style="server.enabled") if enabled else Text("○ Disabled", style="server.disabled")
+    status_text = (
+        Text("● Active", style="server.enabled")
+        if enabled
+        else Text("○ Disabled", style="server.disabled")
+    )
     detail.add_row("Status", status_text)
 
     if "created_at" in config:
@@ -255,7 +267,7 @@ def print_server_detail(name: str, config: Dict[str, Any]):
     console.print()
 
 
-# Client Display 
+# Client Display
 def print_client_list(clients: Dict[str, Dict[str, Any]]):
     """Print a beautifully formatted client list."""
     if not clients:
@@ -288,8 +300,16 @@ def print_client_list(clients: Dict[str, Dict[str, Any]]):
 
     for name, client in sorted(clients.items()):
         enabled = client.get("enabled", True)
-        status = Text("● ACTIVE", style="server.enabled") if enabled else Text("○ OFF", style="server.disabled")
-        auto = Text("auto", style="client.auto") if client.get("auto_discovered", False) else Text("manual", style="dim")
+        status = (
+            Text("● ACTIVE", style="server.enabled")
+            if enabled
+            else Text("○ OFF", style="server.disabled")
+        )
+        auto = (
+            Text("auto", style="client.auto")
+            if client.get("auto_discovered", False)
+            else Text("manual", style="dim")
+        )
         path = client.get("path", "N/A")
         if len(path) > 45:
             path = "..." + path[-42:]
@@ -299,7 +319,7 @@ def print_client_list(clients: Dict[str, Dict[str, Any]]):
     console.print()
 
 
-# Legacy Server Display 
+# Legacy Server Display
 def print_legacy_server_list(servers: Dict[str, Any], client_type: str):
     """Print servers for single-client mode."""
     if not servers:
@@ -326,20 +346,29 @@ def print_legacy_server_list(servers: Dict[str, Any], client_type: str):
         stype = config.get("type", "stdio")
         cmd = config.get("command", "N/A")
         enabled = config.get("enabled", True)
-        status = Text("● ACTIVE", style="server.enabled") if enabled else Text("○ OFF", style="server.disabled")
+        status = (
+            Text("● ACTIVE", style="server.enabled")
+            if enabled
+            else Text("○ OFF", style="server.disabled")
+        )
         table.add_row(f"  {name}", stype, cmd, status)
 
     console.print(Align.center(table))
     console.print()
 
 
-# Sync Display 
+# Sync Display
 def create_sync_progress() -> Progress:
     """Create a styled progress bar for sync operations."""
     return Progress(
         SpinnerColumn("dots", style="bright_magenta"),
         TextColumn("[bold bright_white]{task.description}"),
-        BarColumn(bar_width=30, style="dim", complete_style="bright_magenta", finished_style="green"),
+        BarColumn(
+            bar_width=30,
+            style="dim",
+            complete_style="bright_magenta",
+            finished_style="green",
+        ),
         TextColumn("[muted]{task.completed}/{task.total}"),
         TimeElapsedColumn(),
         console=console,
